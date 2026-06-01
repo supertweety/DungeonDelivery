@@ -47,7 +47,7 @@ class ReplayStyle:
     """Visual settings for pygame replay windows."""
 
     cell_size: int = 44
-    sidebar_width: int = 280
+    sidebar_width: int = 340
     fps: float = 5.0
     margin: int = 12
     button_height: int = 36
@@ -110,7 +110,7 @@ class PygameReplayViewer:
         pygame.init()
         pygame.display.set_caption(self.title)
         width = len(self.grid[0]) * self.style.cell_size + self.style.sidebar_width
-        height = max(len(self.grid) * self.style.cell_size, 340)
+        height = max(len(self.grid) * self.style.cell_size, 560)
         screen = pygame.display.set_mode((width, height))
         clock = pygame.time.Clock()
         small_font = pygame.font.SysFont(None, max(18, self.style.cell_size // 2))
@@ -245,19 +245,25 @@ class PygameReplayViewer:
         lines.append("Scores")
         for agent_id, score in sorted(snapshot.agent_scores.items()):
             lines.append(f"{agent_id}: {score}")
-        lines.append("")
-        lines.append("Controls")
-        lines.append("Space pause")
-        lines.append("Left/Right step")
-        lines.append("R restart")
-        lines.append("Esc quit")
         y = self.style.margin
         for line in lines:
-            font = big_font if line in {"Scores", "Controls"} else small_font
-            color = COLORS["text"] if line not in {"Space pause", "Left/Right step", "R restart", "Esc quit"} else COLORS["muted_text"]
-            surface = font.render(line, True, color)
+            font = big_font if line == "Scores" else small_font
+            surface = font.render(line, True, COLORS["text"])
             screen.blit(surface, (panel_x + self.style.margin, y))
             y += surface.get_height() + 7
+
+        y += 2
+        y = _draw_legend(screen, small_font, big_font, panel_x + self.style.margin, y)
+
+        control_top = min(y + 8, screen.get_height() - 150)
+        controls = ["Controls", "Space pause", "Left/Right step", "R restart", "Esc quit"]
+        y = control_top
+        for line in controls:
+            font = big_font if line == "Controls" else small_font
+            color = COLORS["text"] if line == "Controls" else COLORS["muted_text"]
+            surface = font.render(line, True, color)
+            screen.blit(surface, (panel_x + self.style.margin, y))
+            y += surface.get_height() + 5
 
         self.draw_action_buttons(screen, button_font)
 
@@ -470,7 +476,7 @@ class PygameTournamentViewer:
 
     def _resize_for_viewer(self, pygame, viewer: PygameReplayViewer):
         width = len(viewer.grid[0]) * viewer.style.cell_size + viewer.style.sidebar_width
-        height = max(len(viewer.grid) * viewer.style.cell_size, 340)
+        height = max(len(viewer.grid) * viewer.style.cell_size, 560)
         pygame.display.set_caption(viewer.title)
         return pygame.display.set_mode((width, height))
 
@@ -514,6 +520,46 @@ def replay_tournament(result, cell_size: int = 44, fps: float = 5.0, loop: bool 
 
     style = ReplayStyle(cell_size=cell_size, fps=fps)
     PygameTournamentViewer.from_tournament(result, style=style).run(loop=loop)
+
+
+LEGEND_ITEMS = [
+    ("# wall", "wall"),
+    (". floor", "floor"),
+    ("S start", "start"),
+    ("~ mud", "mud"),
+    ("^ trap", "trap"),
+    ("a key", "key"),
+    ("A door", "door"),
+    ("P package", "package"),
+    ("X destination", "destination"),
+    ("agent", "agent"),
+]
+
+
+def _draw_legend(screen, small_font, big_font, x: int, y: int) -> int:
+    import pygame
+
+    title = big_font.render("Legend", True, COLORS["text"])
+    screen.blit(title, (x, y))
+    y += title.get_height() + 6
+    columns = 2
+    column_width = 150
+    row_height = 24
+    swatch_size = 14
+    for index, (label, color_key) in enumerate(LEGEND_ITEMS):
+        col = index % columns
+        row = index // columns
+        item_x = x + col * column_width
+        item_y = y + row * row_height
+        rect = pygame.Rect(item_x, item_y + 3, swatch_size, swatch_size)
+        if color_key == "agent":
+            pygame.draw.ellipse(screen, AGENT_COLORS[0], rect)
+        else:
+            pygame.draw.rect(screen, COLORS[color_key], rect, border_radius=3)
+        pygame.draw.rect(screen, COLORS["button_border"], rect, width=1, border_radius=3)
+        surface = small_font.render(label, True, COLORS["muted_text"])
+        screen.blit(surface, (item_x + swatch_size + 6, item_y + 1))
+    return y + ((len(LEGEND_ITEMS) + columns - 1) // columns) * row_height + 4
 
 
 def _cell_rect(position: tuple[int, int], cell_size: int):

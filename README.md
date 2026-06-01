@@ -153,7 +153,7 @@ The engine records lightweight snapshots for every scheduled turn. This allows h
 
 ![Dungeon Delivery pygame replay screenshot](docs/pygame_replay_screenshot.png)
 
-Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages, package destinations, scores, current frame, current turn, and the last action taken. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
+Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages, package destinations, scores, current frame, current turn, the last action taken, and an in-window legend explaining the tile colors and overlays. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
 
 ```python
 from dungeon_delivery.pygame_viewer import replay_result, replay_tournament
