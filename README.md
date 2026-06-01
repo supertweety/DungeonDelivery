@@ -52,6 +52,19 @@ def choose_action(self, observation: Observation) -> Action:
 
 Your method is called only when your agent is not delayed by terrain. It should return one of `observation.legal_actions`.
 
+To see what your bot is allowed to do on its current turn, inspect `observation.legal_actions`. This is a tuple of `Action` objects computed by the engine for the current position, keys, carried package, and package availability. For example:
+
+```python
+def choose_action(self, observation: Observation) -> Action:
+    if ACTIONS["deliver"] in observation.legal_actions:
+        return ACTIONS["deliver"]
+    if ACTIONS["pick_up"] in observation.legal_actions:
+        return ACTIONS["pick_up"]
+    return observation.legal_actions[0]
+```
+
+If an agent returns an action that is not in `observation.legal_actions`, the engine treats it as `wait` and increments that agent's invalid-action count.
+
 ## Observation
 
 The `Observation` object is a read-only view of the current game. It includes the grid, your position, your keys, your carried package, legal actions, available packages, carried packages, delivered packages, all agent positions and scores, the current turn, max turns, terrain costs, and helper methods:
