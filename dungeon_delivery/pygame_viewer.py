@@ -212,9 +212,8 @@ class PygameReplayViewer:
 
         for package_id in snapshot.available_packages:
             package = self.packages[package_id]
-            center = _cell_rect(package.position, cell).center
-            pygame.draw.circle(screen, COLORS["package"], center, max(8, cell // 4))
-            _draw_centered_text(screen, small_font, package_id[:2], _cell_rect(package.position, cell), COLORS["dark_text"])
+            rect = _cell_rect(package.position, cell).inflate(-8, -8)
+            _draw_package_marker(screen, small_font, rect, package_id[:3])
 
         by_position: dict[tuple[int, int], list[str]] = {}
         for agent_id, position in snapshot.agent_positions.items():
@@ -245,9 +244,14 @@ class PygameReplayViewer:
         lines.append("Scores")
         for agent_id, score in sorted(snapshot.agent_scores.items()):
             lines.append(f"{agent_id}: {score}")
+        if snapshot.carried_packages:
+            lines.append("")
+            lines.append("Carried")
+            for package_id, agent_id in sorted(snapshot.carried_packages.items()):
+                lines.append(f"{agent_id}: {package_id}")
         y = self.style.margin
         for line in lines:
-            font = big_font if line == "Scores" else small_font
+            font = big_font if line in {"Scores", "Carried"} else small_font
             surface = font.render(line, True, COLORS["text"])
             screen.blit(surface, (panel_x + self.style.margin, y))
             y += surface.get_height() + 7
@@ -530,7 +534,7 @@ LEGEND_ITEMS = [
     ("^ trap", "trap"),
     ("a key", "key"),
     ("A door", "door"),
-    ("P package", "package"),
+    ("parcel package", "package"),
     ("X destination", "destination"),
     ("agent", "agent"),
 ]
@@ -554,9 +558,11 @@ def _draw_legend(screen, small_font, big_font, x: int, y: int) -> int:
         rect = pygame.Rect(item_x, item_y + 3, swatch_size, swatch_size)
         if color_key == "agent":
             pygame.draw.ellipse(screen, AGENT_COLORS[0], rect)
+        elif color_key == "package":
+            _draw_package_marker(screen, small_font, rect.inflate(4, 4), "")
         else:
             pygame.draw.rect(screen, COLORS[color_key], rect, border_radius=3)
-        pygame.draw.rect(screen, COLORS["button_border"], rect, width=1, border_radius=3)
+            pygame.draw.rect(screen, COLORS["button_border"], rect, width=1, border_radius=3)
         surface = small_font.render(label, True, COLORS["muted_text"])
         screen.blit(surface, (item_x + swatch_size + 6, item_y + 1))
     return y + ((len(LEGEND_ITEMS) + columns - 1) // columns) * row_height + 4
@@ -587,6 +593,19 @@ def _cell_color(ch: str) -> tuple[int, int, int]:
 
 def _agent_color(agent_id: str) -> tuple[int, int, int]:
     return AGENT_COLORS[sum(ord(ch) for ch in agent_id) % len(AGENT_COLORS)]
+
+
+def _draw_package_marker(screen, font, rect, label: str) -> None:
+    import pygame
+
+    pygame.draw.rect(screen, COLORS["package"], rect, border_radius=5)
+    pygame.draw.rect(screen, COLORS["button_border"], rect, width=2, border_radius=5)
+    mid_x = rect.centerx
+    band = max(3, rect.width // 8)
+    pygame.draw.rect(screen, (214, 147, 41), pygame.Rect(mid_x - band // 2, rect.y + 2, band, rect.height - 4))
+    pygame.draw.line(screen, (214, 147, 41), (rect.x + 3, rect.centery), (rect.right - 3, rect.centery), width=2)
+    if label:
+        _draw_centered_text(screen, font, label.upper(), rect, COLORS["dark_text"])
 
 
 def _draw_centered_text(screen, font, text: str, rect, color: tuple[int, int, int]) -> None:

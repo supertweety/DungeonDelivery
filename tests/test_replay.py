@@ -1,7 +1,7 @@
 from dungeon_delivery.agents import AStarBaselineAgent
 from dungeon_delivery.core import render_snapshot
 from dungeon_delivery.maps import SIMPLE_OPEN
-from dungeon_delivery.pygame_viewer import PygameReplayViewer, PygameTournamentViewer
+from dungeon_delivery.pygame_viewer import LEGEND_ITEMS, PygameReplayViewer, PygameTournamentViewer
 from dungeon_delivery.tournament import run_tournament
 
 
@@ -41,3 +41,8 @@ def test_tournament_viewer_rejects_empty_selection():
         assert "at least one" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+def test_replay_legend_describes_packages_as_parcels():
+    labels = [label for label, _color in LEGEND_ITEMS]
+    assert "parcel package" in labels
+

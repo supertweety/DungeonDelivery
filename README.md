@@ -107,7 +107,9 @@ The ASCII maps use these tile symbols:
 - Lowercase letters such as `a`, `b`, `c`: keys. Passable, cost 1. Moving onto a key cell adds that key to the agent's collected keys. Keys stay on the board for other agents.
 - Uppercase letters such as `A`, `B`, `C`: locked doors. A door is passable only if the agent has the matching lowercase key, for example key `a` opens door `A`. Entering a passable door costs 1.
 
-Packages and destinations are not part of the ASCII map itself. They are stored separately in the map data. In text rendering and the pygame replay, available packages are drawn on top of the map, and destinations are shown as marked target cells. Agents are also drawn as overlays; they do not change the underlying tile.
+Packages and destinations are not part of the ASCII map itself. They are stored separately in the map data. In text rendering and the pygame replay, available packages are drawn on top of the map, and destinations are shown as marked target cells. In the pygame replay, available packages are shown as yellow parcel icons labeled with the first few letters of the package id. Once an agent picks up a package, that package disappears from the board and appears in the side panel under `Carried` until it is delivered. Agents are also drawn as overlays; they do not change the underlying tile.
+
+Each agent can carry at most one package at a time. If an agent is already carrying a package, it cannot pick up another one until it delivers the current package.
 
 ## Agent Collision Rule
 
@@ -153,7 +155,7 @@ The engine records lightweight snapshots for every scheduled turn. This allows h
 
 ![Dungeon Delivery pygame replay screenshot](docs/pygame_replay_screenshot.png)
 
-Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages, package destinations, scores, current frame, current turn, the last action taken, and an in-window legend explaining the tile colors and overlays. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
+Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages as yellow parcel icons, package destinations, carried packages, scores, current frame, current turn, the last action taken, and an in-window legend explaining the tile colors and overlays. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
 
 ```python
 from dungeon_delivery.pygame_viewer import replay_result, replay_tournament
