@@ -84,6 +84,10 @@ Multiple agents may occupy the same cell at the same time. Agents do not block m
 
 If two or more agents are standing on the same package cell, the one whose turn comes first may pick it up. Other agents must observe that the package is gone and replan.
 
+There are no simultaneous actions in the engine. At the beginning of each round, the tournament runner randomly shuffles the agent order once. The engine then cycles through that fixed order for the rest of the round. For example, if a round starts with the order `astar, greedy, nearest`, scheduled turns proceed as `astar, greedy, nearest, astar, greedy, nearest, ...`.
+
+This fixed per-round order is also the tie-breaker for contested pickups. If two agents both intend to pick up the same package, the earlier scheduled agent gets it first, the package becomes unavailable immediately, and a later `pick_up` for that same package is invalid and is treated as `wait`.
+
 ## Terrain Costs
 
 The movement cost of a cell is the cost of entering that cell. Entering mud costs 3, so the agent moves into the mud cell immediately and then skips its next 2 scheduled turns. Entering a trap costs 5, so the agent skips its next 4 scheduled turns. Therefore, good agents should minimize total movement cost, not just the number of moves.
