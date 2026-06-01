@@ -95,6 +95,20 @@ Use the predefined actions:
 
 The engine may record `wait_delayed` internally when terrain causes skipped turns. Student agents should not choose it.
 
+## Map Tiles
+
+The ASCII maps use these tile symbols:
+
+- `#`: wall. Impassable.
+- `.`: normal floor. Passable, cost 1.
+- `S`: possible starting cell. Passable, cost 1.
+- `~`: mud. Passable, cost 3, so entering it causes 2 future skipped turns.
+- `^`: trap. Passable, cost 5, so entering it causes 4 future skipped turns.
+- Lowercase letters such as `a`, `b`, `c`: keys. Passable, cost 1. Moving onto a key cell adds that key to the agent's collected keys. Keys stay on the board for other agents.
+- Uppercase letters such as `A`, `B`, `C`: locked doors. A door is passable only if the agent has the matching lowercase key, for example key `a` opens door `A`. Entering a passable door costs 1.
+
+Packages and destinations are not part of the ASCII map itself. They are stored separately in the map data. In text rendering and the pygame replay, available packages are drawn on top of the map, and destinations are shown as marked target cells. Agents are also drawn as overlays; they do not change the underlying tile.
+
 ## Agent Collision Rule
 
 Multiple agents may occupy the same cell at the same time. Agents do not block movement and may pass through each other. The competitive part of the game comes from packages: once a package is picked up by one agent, it is no longer available to the others.
