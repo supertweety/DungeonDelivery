@@ -137,9 +137,11 @@ For simple pathfinding to a fixed target, a search state can be just `position`.
 
 ## Replay Visualization
 
-The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading.
+The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading. After a tournament finishes, students can open a pygame replay window, choose which round to inspect, and watch the agents move through the dungeon one scheduled turn at a time. This is useful for debugging search behavior: students can see when an agent chooses a muddy shortcut, gets delayed by terrain, loses a package race because another agent picked it up first, uses a portal, or replans after a package disappears.
 
-Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows terrain, agents, available packages, destinations, scores, and the last action. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
+![Dungeon Delivery pygame replay screenshot](docs/pygame_replay_screenshot.png)
+
+Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, portals, agents, available packages, package destinations, scores, current frame, current turn, and the last action taken. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
 
 ```python
 from dungeon_delivery.pygame_viewer import replay_result, replay_tournament
