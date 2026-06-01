@@ -93,3 +93,17 @@ def test_search_does_not_treat_other_agents_as_obstacles():
     result = shortest_path_for_agent(obs, (1, 1), (1, 3), frozenset())
     assert result is not None
     assert result.path == [(1, 1), (1, 2), (1, 3)]
+
+def test_observation_estimate_path_cost_is_simple_manhattan_distance():
+    obs = observation_for([
+        "########",
+        "#S~~.x.#",
+        "#.####.#",
+        "#......#",
+        "########",
+    ])
+    assert obs.estimate_path_cost((1, 1), (1, 5), frozenset()) == 4
+    result = shortest_path_for_agent(obs, (1, 1), (1, 5), frozenset())
+    assert result is not None
+    assert result.cost > obs.estimate_path_cost((1, 1), (1, 5), frozenset())
+

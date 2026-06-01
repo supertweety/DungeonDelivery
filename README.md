@@ -62,6 +62,10 @@ The `Observation` object is a read-only view of the current game. It includes th
 - `neighbors(position, keys)`
 - `estimate_path_cost(start, goal, keys)`
 
+The `estimate_path_cost(start, goal, keys)` helper intentionally returns a simple Manhattan-distance estimate: `abs(start_row - goal_row) + abs(start_col - goal_col)`. It does not run BFS, uniform-cost search, or A*. It also ignores walls, terrain costs, doors, keys, portals, packages, and other agents. The `keys` argument is accepted so the helper has the same shape as richer planning code, but this basic estimate does not use it.
+
+This is deliberately a weak estimate. It is useful for quick target scoring and for simple heuristics, but students still need to implement real search if they want paths that account for weighted terrain, doors, portals, and reachability.
+
 Agents do not receive direct mutable game state, hidden random seeds, or private engine internals.
 
 ## Actions

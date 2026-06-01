@@ -246,11 +246,14 @@ class Observation:
     def estimate_path_cost(
         self, start: Position, goal: Position, keys: set[str] | frozenset[str] | None = None
     ) -> float:
-        """Estimate path cost with uniform-cost search, returning infinity if unreachable."""
+        """Return a simple Manhattan-distance path-cost estimate.
 
-        from dungeon_delivery.search_utils import shortest_path_distance_for_agent
+        The ``keys`` argument is accepted for API consistency with richer
+        planning helpers, but this deliberately simple estimate ignores keys,
+        walls, doors, terrain costs, portals, packages, and other agents.
+        """
 
-        return shortest_path_distance_for_agent(self, start, goal, keys or self.self_keys)
+        return abs(start[0] - goal[0]) + abs(start[1] - goal[1])
 
 
 @dataclass
