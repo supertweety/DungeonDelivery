@@ -92,15 +92,15 @@ DOOR_AND_KEY = MapSpec(
     description="Two keys unlock higher-value routes, but there are still fallback deliveries.",
 )
 
-PORTAL_MAP = MapSpec(
-    name="portal_map",
+MAZE_MAP = MapSpec(
+    name="maze_map",
     grid=(
         "################",
-        "#S..0....#.....#",
+        "#S.......#.....#",
         "#.####.#.#.###.#",
-        "#......#.#...1.#",
+        "#......#.#.....#",
         "#.######.###.#.#",
-        "#....1......#0.#",
+        "#...........#..#",
         "#..............#",
         "################",
     ),
@@ -109,21 +109,21 @@ PORTAL_MAP = MapSpec(
         Package("gem", position=(3, 12), destination=(5, 2), value=28),
         Package("vase", position=(1, 5), destination=(6, 12), value=18),
     ),
-    max_turns=260,
-    description="Portals create shortcuts, but using the wrong one can send agents away from good packages.",
+    max_turns=300,
+    description="A maze-like map where corridor structure makes route planning important.",
 )
 
 COMPETITIVE_MAP = MapSpec(
     name="competitive_map",
     grid=(
         "##################",
-        "#S....~....0.....#",
+        "#S....~..........#",
         "#.###.###.##.###.#",
-        "#a..A.....0...#..#",
+        "#a..A.........#..#",
         "#....^^.#####.#..#",
         "#.######.....#...#",
         "#......#..b..B...#",
-        "#..1...#.....#1..#",
+        "#......#.....#...#",
         "##################",
     ),
     packages=(
@@ -135,24 +135,24 @@ COMPETITIVE_MAP = MapSpec(
         Package("book", position=(3, 15), destination=(6, 2), value=26),
     ),
     max_turns=380,
-    description="A larger competitive board with keys, doors, portals, traps, and value/distance tradeoffs.",
+    description="A larger competitive board with keys, doors, traps, and value/distance tradeoffs.",
 )
 
 GAUNTLET_MAP = MapSpec(
     name="gauntlet_map",
     grid=(
         "####################",
-        "#S...~....#....0...#",
+        "#S...~....#........#",
         "#.###.##..#.######.#",
         "#...#..#..#....#...#",
         "###.#..#..####.#.^##",
         "#a..#..A.....#.#...#",
         "#.#####.###..#.#.#.#",
         "#.....#...#..#...#.#",
-        "#.1...###.#..###.#.#",
-        "#.....#...#....bB#0#",
+        "#.....###.#..###.#.#",
+        "#.....#...#....bB#.#",
         "#..^..#...####...#.#",
-        "#.....1..........#.#",
+        "#................#.#",
         "####################",
     ),
     packages=(
@@ -163,14 +163,14 @@ GAUNTLET_MAP = MapSpec(
         Package("quartz", position=(8, 2), destination=(9, 18), value=28),
     ),
     max_turns=460,
-    description="A long-form challenge map where portals and keys matter over many turns.",
+    description="A long-form challenge map where keys, doors, traps, and corridors matter over many turns.",
 )
 
 FIXED_MAPS: tuple[MapSpec, ...] = (
     SIMPLE_OPEN,
     MUD_SHORTCUT,
     DOOR_AND_KEY,
-    PORTAL_MAP,
+    MAZE_MAP,
     COMPETITIVE_MAP,
     GAUNTLET_MAP,
 )
@@ -191,7 +191,7 @@ def random_open_map(
 ) -> MapSpec:
     """Generate a simple open map with random packages.
 
-    This generator avoids doors and portals so generated maps remain easy to
+    This generator avoids doors so generated maps remain easy to
     reason about in an introductory assignment.
     """
 

@@ -1,6 +1,6 @@
 # Dungeon Delivery: A Search Tournament
 
-Welcome to the Royal Dungeon Courier Service. Valuable magical artifacts must be delivered across a dungeon full of doors, keys, portals, mud, traps, and competing couriers. Your agent is not paid by the hour; it is paid by successful deliveries.
+Welcome to the Royal Dungeon Courier Service. Valuable magical artifacts must be delivered across a dungeon full of doors, keys, mud, traps, and competing couriers. Your agent is not paid by the hour; it is paid by successful deliveries.
 
 ## Overview
 
@@ -75,9 +75,9 @@ The `Observation` object is a read-only view of the current game. It includes th
 - `neighbors(position, keys)`
 - `estimate_path_cost(start, goal, keys)`
 
-The `estimate_path_cost(start, goal, keys)` helper intentionally returns a simple Manhattan-distance estimate: `abs(start_row - goal_row) + abs(start_col - goal_col)`. It does not run BFS, uniform-cost search, or A*. It also ignores walls, terrain costs, doors, keys, portals, packages, and other agents. The `keys` argument is accepted so the helper has the same shape as richer planning code, but this basic estimate does not use it.
+The `estimate_path_cost(start, goal, keys)` helper intentionally returns a simple Manhattan-distance estimate: `abs(start_row - goal_row) + abs(start_col - goal_col)`. It does not run BFS, uniform-cost search, or A*. It also ignores walls, terrain costs, doors, keys, packages, and other agents. The `keys` argument is accepted so the helper has the same shape as richer planning code, but this basic estimate does not use it.
 
-This is deliberately a weak estimate. It is useful for quick target scoring and for simple heuristics, but students still need to implement real search if they want paths that account for weighted terrain, doors, portals, and reachability.
+This is deliberately a weak estimate. It is useful for quick target scoring and for simple heuristics, but students still need to implement real search if they want paths that account for weighted terrain, doors, and reachability.
 
 Agents do not receive direct mutable game state, hidden random seeds, or private engine internals.
 
@@ -109,17 +109,15 @@ This fixed per-round order is also the tie-breaker for contested pickups. If two
 
 The movement cost of a cell is the cost of entering that cell. Entering mud costs 3, so the agent moves into the mud cell immediately and then skips its next 2 scheduled turns. Entering a trap costs 5, so the agent skips its next 4 scheduled turns. Therefore, good agents should minimize total movement cost, not just the number of moves.
 
-The start cell, normal floor, keys, passable doors, and portals cost 1. Mud costs 3. Traps cost 5. Pickup, delivery, and waiting each consume one scheduled turn.
+The start cell, normal floor, keys, and passable doors cost 1. Mud costs 3. Traps cost 5. Pickup, delivery, and waiting each consume one scheduled turn.
 
-## Doors, Keys, and Portals
+## Doors and Keys
 
 Uppercase letters are locked doors. Door `A` requires key `a`. Keys are reusable and non-exclusive: moving onto a key cell gives that key to the agent, and the key remains available to other agents.
 
-Digits are portals. Entering one portal cell pays the cost of entering that cell and immediately teleports the agent to the matching portal cell. With more than two matching portals, teleportation goes to the next one in sorted order.
-
 ## Search Guidance
 
-BFS is suitable only when all movement costs are equal. Uniform-cost search handles weighted terrain. A* can be faster if the heuristic is informative. The provided A* baseline uses Manhattan distance times the minimum terrain cost, which is admissible for ordinary grid movement and still useful on maps with portals.
+BFS is suitable only when all movement costs are equal. Uniform-cost search handles weighted terrain. A* can be faster if the heuristic is informative. The provided A* baseline uses Manhattan distance times the minimum terrain cost, which is admissible for ordinary grid movement in these maps.
 
 Replanning is important because other agents can take packages before you reach them. Greedy target selection can be improved using value/distance ratios, estimated delivery cost, and whether another agent appears likely to reach a package first.
 
@@ -137,11 +135,11 @@ For simple pathfinding to a fixed target, a search state can be just `position`.
 
 ## Replay Visualization
 
-The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading. After a tournament finishes, students can open a pygame replay window, choose which round to inspect, and watch the agents move through the dungeon one scheduled turn at a time. This is useful for debugging search behavior: students can see when an agent chooses a muddy shortcut, gets delayed by terrain, loses a package race because another agent picked it up first, uses a portal, or replans after a package disappears.
+The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading. After a tournament finishes, students can open a pygame replay window, choose which round to inspect, and watch the agents move through the dungeon one scheduled turn at a time. This is useful for debugging search behavior: students can see when an agent chooses a muddy shortcut, gets delayed by terrain, loses a package race because another agent picked it up first, passes through a locked door, or replans after a package disappears.
 
 ![Dungeon Delivery pygame replay screenshot](docs/pygame_replay_screenshot.png)
 
-Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, portals, agents, available packages, package destinations, scores, current frame, current turn, and the last action taken. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
+Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages, package destinations, scores, current frame, current turn, and the last action taken. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
 
 ```python
 from dungeon_delivery.pygame_viewer import replay_result, replay_tournament
@@ -172,7 +170,6 @@ Additionally, students will be asked 3 questions about their code. Each incorrec
 - Compare BFS, UCS, and A*.
 - Add terrain costs.
 - Add support for doors and keys.
-- Add support for portals.
 - Choose packages using value and estimated delivery cost.
 - Optionally account for whether another agent is likely to pick up a target package first.
 - Replan every turn.

@@ -18,7 +18,6 @@ COLORS = {
     "trap": (177, 72, 72),
     "door": (91, 87, 160),
     "key": (234, 190, 87),
-    "portal": (87, 155, 206),
     "package": (244, 187, 68),
     "destination": (84, 155, 111),
     "text": (245, 245, 240),
@@ -537,8 +536,6 @@ def _cell_color(ch: str) -> tuple[int, int, int]:
         return COLORS["door"]
     if ch.islower():
         return COLORS["key"]
-    if ch.isdigit():
-        return COLORS["portal"]
     return COLORS["floor"]
 
 

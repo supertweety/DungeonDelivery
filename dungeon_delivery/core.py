@@ -200,7 +200,6 @@ class Observation:
     max_turns: int
     round_number: int
     terrain_costs: Mapping[str, int]
-    portals: Mapping[str, tuple[Position, ...]]
 
     def get_cell(self, position: Position) -> str:
         """Return the map character at ``position``."""
@@ -227,7 +226,7 @@ class Observation:
     def neighbors(
         self, position: Position, keys: set[str] | frozenset[str] | None = None
     ) -> list[tuple[Position, Action, int]]:
-        """Return passable neighboring positions after portal teleportation.
+        """Return passable neighboring positions.
 
         Each item is ``(next_position, action, movement_cost)``.
         """
@@ -239,8 +238,7 @@ class Observation:
             if not self.is_passable(raw_next, keys):
                 continue
             cost = self.get_cell_cost(raw_next)
-            final_next = apply_portal(raw_next, self.grid, self.portals)
-            result.append((final_next, action, cost))
+            result.append((raw_next, action, cost))
         return result
 
     def estimate_path_cost(
@@ -250,7 +248,7 @@ class Observation:
 
         The ``keys`` argument is accepted for API consistency with richer
         planning helpers, but this deliberately simple estimate ignores keys,
-        walls, doors, terrain costs, portals, packages, and other agents.
+        walls, doors, terrain costs, packages, and other agents.
         """
 
         return abs(start[0] - goal[0]) + abs(start[1] - goal[1])
@@ -292,23 +290,12 @@ def find_start_positions(grid: tuple[str, ...]) -> list[Position]:
     return [(r, c) for r, row in enumerate(grid) for c, ch in enumerate(row) if ch == "S"]
 
 
-def find_portals(grid: tuple[str, ...]) -> dict[str, tuple[Position, ...]]:
-    """Return portal labels mapped to sorted positions."""
-
-    portals: dict[str, list[Position]] = {}
-    for r, row in enumerate(grid):
-        for c, ch in enumerate(row):
-            if ch.isdigit():
-                portals.setdefault(ch, []).append((r, c))
-    return {label: tuple(sorted(positions)) for label, positions in portals.items()}
-
-
 def cell_cost(cell: str, terrain_costs: Mapping[str, int]) -> int:
     """Return cost of entering a cell character."""
 
     if cell in terrain_costs:
         return terrain_costs[cell]
-    if cell.islower() or cell.isupper() or cell.isdigit():
+    if cell.islower() or cell.isupper():
         return 1
     return 1
 
@@ -327,19 +314,6 @@ def is_passable_cell(
     if cell.isupper() and cell != "S":
         return cell.lower() in keys
     return True
-
-
-def apply_portal(position: Position, grid: tuple[str, ...], portals: Mapping[str, tuple[Position, ...]]) -> Position:
-    """Return final position after deterministic portal teleportation."""
-
-    cell = grid[position[0]][position[1]]
-    if not cell.isdigit():
-        return position
-    positions = portals.get(cell, ())
-    if len(positions) < 2:
-        return position
-    index = positions.index(position)
-    return positions[(index + 1) % len(positions)]
 
 
 def render_board(state: GameState) -> str:
@@ -371,7 +345,7 @@ def render_snapshot(grid: tuple[str, ...], packages: Mapping[str, Package], snap
     for package in packages.values():
         if package.package_id not in snapshot.delivered_packages:
             dr, dc = package.destination
-            if cells[dr][dc] in ".S~^" or cells[dr][dc].isdigit():
+            if cells[dr][dc] in ".S~^":
                 cells[dr][dc] = "x"
     for package_id in snapshot.available_packages:
         package = packages[package_id]
@@ -409,7 +383,6 @@ class DungeonDeliveryGame:
             name = getattr(agents[agent_id], "name", agent_id)
             state_agents[agent_id] = AgentState(agent_id=agent_id, name=name, position=start)
         self.turn_order = turn_order or agent_ids
-        self.portals = find_portals(config.grid)
         package_map = {package.package_id: package for package in config.packages}
         self.state = GameState(
             grid=config.grid,
@@ -516,7 +489,6 @@ class DungeonDeliveryGame:
             max_turns=self.state.max_turns,
             round_number=self.state.round_number,
             terrain_costs=MappingProxyType(dict(self.state.terrain_costs)),
-            portals=MappingProxyType(self.portals),
         )
         return observation
 
@@ -549,13 +521,10 @@ class DungeonDeliveryGame:
             dr, dc = action.direction.value
             raw_next = (agent.position[0] + dr, agent.position[1] + dc)
             cost = cell_cost(self.state.grid[raw_next[0]][raw_next[1]], self.state.terrain_costs)
-            agent.position = apply_portal(raw_next, self.state.grid, self.portals)
-            final_cell = self.state.grid[agent.position[0]][agent.position[1]]
+            agent.position = raw_next
             raw_cell = self.state.grid[raw_next[0]][raw_next[1]]
             if raw_cell.islower():
                 agent.collected_keys.add(raw_cell)
-            if final_cell.islower():
-                agent.collected_keys.add(final_cell)
             agent.delay_counter = max(0, cost - 1)
             return
 

@@ -65,19 +65,6 @@ def test_locked_doors_require_keys_and_keys_are_reusable():
     assert game.state.agents["a"].position == (1, 3)
 
 
-def test_portals_teleport_correctly():
-    game = make_game(
-        [
-            "#######",
-            "#S0..0#",
-            "#######",
-        ],
-        agents={"a": ScriptedAgent([ACTIONS["move_east"]])},
-    )
-    game.step("a")
-    assert game.state.agents["a"].position == (1, 5)
-
-
 def test_agents_can_share_cells_and_do_not_block_movement():
     agents = {
         "a": ScriptedAgent([ACTIONS["move_east"]]),

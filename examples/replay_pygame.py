@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 
-from dungeon_delivery.maps import COMPETITIVE_MAP, DOOR_AND_KEY, GAUNTLET_MAP, MUD_SHORTCUT, PORTAL_MAP, SIMPLE_OPEN
+from dungeon_delivery.maps import COMPETITIVE_MAP, DOOR_AND_KEY, GAUNTLET_MAP, MAZE_MAP, MUD_SHORTCUT, SIMPLE_OPEN
 from dungeon_delivery.pygame_viewer import replay_tournament
 from dungeon_delivery.tournament import default_baseline_agents, run_tournament
 
@@ -17,7 +17,7 @@ MAPS = {
     "simple": SIMPLE_OPEN,
     "mud": MUD_SHORTCUT,
     "door": DOOR_AND_KEY,
-    "portal": PORTAL_MAP,
+    "maze": MAZE_MAP,
     "competitive": COMPETITIVE_MAP,
     "gauntlet": GAUNTLET_MAP,
 }
