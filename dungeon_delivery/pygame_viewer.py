@@ -203,13 +203,17 @@ class PygameReplayViewer:
 
         screen.fill(COLORS["background"])
         cell = self.style.cell_size
+        available_keys = snapshot.available_keys
         for row, line in enumerate(self.grid):
             for col, ch in enumerate(line):
+                visible_ch = ch
+                if ch.islower() and available_keys is not None and (row, col) not in available_keys:
+                    visible_ch = "."
                 rect = pygame.Rect(col * cell, row * cell, cell, cell)
-                pygame.draw.rect(screen, _cell_color(ch), rect)
+                pygame.draw.rect(screen, _cell_color(visible_ch), rect)
                 pygame.draw.rect(screen, COLORS["grid"], rect, 1)
-                if ch not in ".S#~^":
-                    _draw_centered_text(screen, small_font, ch, rect, COLORS["dark_text"])
+                if visible_ch not in ".S#~^":
+                    _draw_centered_text(screen, small_font, visible_ch, rect, COLORS["dark_text"])
 
         for package in self.packages.values():
             if package.package_id not in snapshot.delivered_packages:
@@ -564,7 +568,7 @@ LEGEND_ITEMS = [
     ("S start", "start"),
     ("~ mud", "mud"),
     ("^ trap", "trap"),
-    ("a key", "key"),
+    ("a key available", "key"),
     ("A door", "door"),
     ("parcel package", "package"),
     ("X destination", "destination"),

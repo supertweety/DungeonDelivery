@@ -9,6 +9,7 @@ from dungeon_delivery.core import (
     Package,
     PICK_UP,
     WAIT,
+    render_snapshot,
 )
 
 
@@ -47,22 +48,36 @@ def test_moving_into_walls_and_outside_board_is_illegal():
     assert ACTIONS["move_west"] not in obs.legal_actions
 
 
-def test_locked_doors_require_keys_and_keys_are_reusable():
+def test_locked_doors_require_exclusive_keys():
     game = make_game(
         [
             "#####",
             "#SaA#",
             "#####",
         ],
-        agents={"a": ScriptedAgent([ACTIONS["move_east"], ACTIONS["move_east"]])},
+        agents={
+            "a": ScriptedAgent([ACTIONS["move_east"], ACTIONS["move_east"]]),
+            "b": ScriptedAgent([ACTIONS["move_east"]]),
+        },
+        turn_order=["a", "b"],
     )
     assert ACTIONS["move_east"] in game.make_observation("a").legal_actions
+    assert (1, 2) in game.make_observation("a").available_keys
+
     game.step("a")
     assert "a" in game.state.agents["a"].collected_keys
-    assert game.state.grid[1][2] == "a"
+    assert (1, 2) not in game.state.available_keys
+    assert game.make_observation("b").get_cell((1, 2)) == "."
+
     assert ACTIONS["move_east"] in game.make_observation("a").legal_actions
     game.step("a")
     assert game.state.agents["a"].position == (1, 3)
+    board = render_snapshot(game.state.grid, game.state.packages, game.state.snapshots[-1])
+    assert board.splitlines()[1][2] == "."
+
+    game.step("b")
+    assert "a" not in game.state.agents["b"].collected_keys
+    assert ACTIONS["move_east"] not in game.make_observation("b").legal_actions
 
 
 def test_agents_can_share_cells_and_do_not_block_movement():

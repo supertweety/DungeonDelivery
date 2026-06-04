@@ -52,7 +52,7 @@ def choose_action(self, observation: Observation) -> Action:
 
 Your method is called only when your agent is not delayed by terrain. It should return one of `observation.legal_actions`.
 
-To see what your bot is allowed to do on its current turn, inspect `observation.legal_actions`. This is a tuple of `Action` objects computed by the engine for the current position, keys, carried package, and package availability. For example:
+To see what your bot is allowed to do on its current turn, inspect `observation.legal_actions`. This is a tuple of `Action` objects computed by the engine for the current position, collected keys, carried package, package availability, and key availability. For example:
 
 ```python
 def choose_action(self, observation: Observation) -> Action:
@@ -67,7 +67,7 @@ If an agent returns an action that is not in `observation.legal_actions`, the en
 
 ## Observation
 
-The `Observation` object is a read-only view of the current game. It includes the grid, your position, your keys, your carried package, legal actions, available packages, carried packages, delivered packages, all agent positions and scores, the current turn, max turns, terrain costs, and helper methods:
+The `Observation` object is a read-only view of the current game. It includes the visible grid, your position, your keys, your carried package, legal actions, available packages, available key positions, carried packages, delivered packages, all agent positions and scores, the current turn, max turns, terrain costs, and helper methods:
 
 - `get_cell(position)`
 - `get_cell_cost(position)`
@@ -104,22 +104,22 @@ The ASCII maps use these tile symbols:
 - `S`: possible starting cell. Passable, cost 1.
 - `~`: mud. Passable, cost 3, so entering it causes 2 future skipped turns.
 - `^`: trap. Passable, cost 5, so entering it causes 4 future skipped turns.
-- Lowercase letters such as `a`, `b`, `c`: keys. Passable, cost 1. Moving onto a key cell adds that key to the agent's collected keys. Keys stay on the board for other agents.
+- Lowercase letters such as `a`, `b`, `c`: available keys. Passable, cost 1. Moving onto a key cell adds that key to the agent's collected keys, then that key disappears and becomes ordinary floor for everyone else.
 - Uppercase letters such as `A`, `B`, `C`: locked doors. A door is passable only if the agent has the matching lowercase key, for example key `a` opens door `A`. Entering a passable door costs 1.
 
-Packages and destinations are not part of the ASCII map itself. They are stored separately in the map data. In text rendering and the pygame replay, available packages are drawn on top of the map, and destinations are shown as marked target cells. In the pygame replay, available packages are shown as yellow parcel icons labeled with the first few letters of the package id. Once an agent picks up a package, that package disappears from the board and appears in the side panel under `Carried` until it is delivered. Agents are also drawn as overlays; they do not change the underlying tile.
+Packages and destinations are not part of the ASCII map itself. They are stored separately in the map data. In text rendering and the pygame replay, available packages are drawn on top of the map, and destinations are shown as marked target cells. In the pygame replay, available packages are shown as yellow parcel icons labeled with the first few letters of the package id. Once an agent picks up a package, that package disappears from the board and appears in the side panel under `Carried` until it is delivered. Claimed keys also disappear from the visible board and are shown as ordinary floor in later observations and replay frames. Agents are drawn as overlays; they do not change the underlying tile.
 
 Each agent can carry at most one package at a time. If an agent is already carrying a package, it cannot pick up another one until it delivers the current package.
 
 ## Agent Collision Rule
 
-Multiple agents may occupy the same cell at the same time. Agents do not block movement and may pass through each other. The competitive part of the game comes from packages: once a package is picked up by one agent, it is no longer available to the others.
+Multiple agents may occupy the same cell at the same time. Agents do not block movement and may pass through each other. The competitive part of the game comes from exclusive resources: once a package is picked up by one agent, it is no longer available to the others, and once a key is collected by one agent, that key disappears from the board.
 
 If two or more agents are standing on the same package cell, the one whose turn comes first may pick it up. Other agents must observe that the package is gone and replan.
 
 There are no simultaneous actions in the engine. At the beginning of each round, the tournament runner randomly shuffles the agent order once. The engine then cycles through that fixed order for the rest of the round. For example, if a round starts with the order `astar, greedy, nearest`, scheduled turns proceed as `astar, greedy, nearest, astar, greedy, nearest, ...`.
 
-This fixed per-round order is also the tie-breaker for contested pickups. If two agents both intend to pick up the same package, the earlier scheduled agent gets it first, the package becomes unavailable immediately, and a later `pick_up` for that same package is invalid and is treated as `wait`.
+This fixed per-round order is also the tie-breaker for contested pickups and key collection. If two agents both intend to pick up the same package, the earlier scheduled agent gets it first, the package becomes unavailable immediately, and a later `pick_up` for that same package is invalid and is treated as `wait`. If two agents are racing for the same key, the earlier scheduled agent who moves onto the key cell collects it; later agents see ordinary floor there and do not receive the key.
 
 ## Terrain Costs
 
@@ -129,7 +129,7 @@ The start cell, normal floor, keys, and passable doors cost 1. Mud costs 3. Trap
 
 ## Doors and Keys
 
-Uppercase letters are locked doors. Door `A` requires key `a`. Keys are reusable and non-exclusive: moving onto a key cell gives that key to the agent, and the key remains available to other agents.
+Uppercase letters are locked doors. Door `A` requires key `a`. Keys are exclusive: moving onto an available key cell gives that key to the agent and removes that key from the board. Other agents can still move through the cell afterward, but they do not receive the key from that cell. If a map has another copy of the same lowercase key somewhere else, that separate key cell can still be collected.
 
 ## Search Guidance
 
@@ -139,7 +139,7 @@ Replanning is important because other agents can take packages before you reach 
 
 Other agents should not be treated as impassable obstacles in the default rules. They can stand together, pass through each other, and share cells freely.
 
-For simple pathfinding to a fixed target, a search state can be just `position`. For planning with doors and keys, a state might be `(position, frozenset(keys))`. For full package pickup and delivery planning, a state might include `(position, frozenset(keys), carried_package, delivered_packages)`. The baseline agents replan greedily each turn instead of searching the full delivery problem.
+For simple pathfinding to a fixed target, a search state can be just `position`. For planning with doors and keys, a state might be `(position, frozenset(keys))`. If your strategy reasons about whether a key will still be available, the state may also need available key positions. For full package pickup and delivery planning, a state might include `(position, frozenset(keys), carried_package, delivered_packages)`. The baseline agents replan greedily each turn instead of searching the full delivery problem.
 
 ## Baseline Agents
 
@@ -151,11 +151,11 @@ For simple pathfinding to a fixed target, a search state can be just `position`.
 
 ## Replay Visualization
 
-The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading. After a tournament finishes, students can open a pygame replay window, choose which round to inspect, and watch the agents move through the dungeon one scheduled turn at a time. This is useful for debugging search behavior: students can see when an agent chooses a muddy shortcut, gets delayed by terrain, loses a package race because another agent picked it up first, passes through a locked door, or replans after a package disappears.
+The engine records lightweight snapshots for every scheduled turn. This allows hindsight visualization without changing the headless tournament engine used for grading. After a tournament finishes, students can open a pygame replay window, choose which round to inspect, and watch the agents move through the dungeon one scheduled turn at a time. This is useful for debugging search behavior: students can see when an agent chooses a muddy shortcut, gets delayed by terrain, loses a package race because another agent picked it up first, claims a key before another agent can use it, passes through a locked door, or replans after a package or key disappears.
 
 ![Dungeon Delivery pygame replay screenshot](docs/pygame_replay_screenshot.png)
 
-Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, keys, doors, agents, available packages as yellow parcel icons, package destinations, carried packages, scores, current frame, current turn, the last action taken, and an in-window legend explaining the tile colors and overlays. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
+Use `dungeon_delivery.pygame_viewer.replay_result(result)` to open an animated pygame window for one completed `GameResult`, or `replay_tournament(tournament_result)` to choose among many rounds inside the pygame window. The viewer shows the map terrain, walls, available keys, doors, agents, available packages as yellow parcel icons, package destinations, carried packages, scores, current frame, current turn, the last action taken, and an in-window legend explaining the tile colors and overlays. When a key is collected, it disappears from later replay frames and the cell is drawn as floor. Press Space to pause, Left/Right to step, R or REPLAY to restart, SELECT GAME to return to the menu, and Esc or EXIT to quit.
 
 ```python
 from dungeon_delivery.pygame_viewer import replay_result, replay_tournament

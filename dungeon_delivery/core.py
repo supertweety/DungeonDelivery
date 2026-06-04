@@ -137,6 +137,7 @@ class GameSnapshot:
     last_agent_id: str | None = None
     last_action: Action | None = None
     message: str = ""
+    available_keys: frozenset[Position] | None = None
 
 
 @dataclass
@@ -162,6 +163,7 @@ class GameState:
     current_turn: int = 0
     round_number: int = 0
     available_packages: set[str] = field(default_factory=set)
+    available_keys: set[Position] = field(default_factory=set)
     carried_packages: dict[str, str] = field(default_factory=dict)
     delivered_packages: set[str] = field(default_factory=set)
     turn_log: list[TurnRecord] = field(default_factory=list)
@@ -192,6 +194,7 @@ class Observation:
     legal_actions: tuple[Action, ...]
     all_packages: Mapping[str, Package]
     packages_available: Mapping[str, Package]
+    available_keys: frozenset[Position]
     packages_carried_by_agents: Mapping[str, str]
     delivered_packages: frozenset[str]
     all_agent_positions: Mapping[str, Position]
@@ -290,6 +293,23 @@ def find_start_positions(grid: tuple[str, ...]) -> list[Position]:
     return [(r, c) for r, row in enumerate(grid) for c, ch in enumerate(row) if ch == "S"]
 
 
+def find_key_positions(grid: tuple[str, ...]) -> set[Position]:
+    """Return positions of all collectible key cells in ``grid``."""
+
+    return {(r, c) for r, row in enumerate(grid) for c, ch in enumerate(row) if ch.islower()}
+
+
+def visible_grid(grid: tuple[str, ...], available_keys: set[Position] | frozenset[Position]) -> tuple[str, ...]:
+    """Return a grid where claimed key cells appear as ordinary floor."""
+
+    rows = [list(row) for row in grid]
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch.islower() and (r, c) not in available_keys:
+                row[c] = "."
+    return tuple("".join(row) for row in rows)
+
+
 def cell_cost(cell: str, terrain_costs: Mapping[str, int]) -> int:
     """Return cost of entering a cell character."""
 
@@ -330,6 +350,7 @@ def render_board(state: GameState) -> str:
         available_packages=frozenset(state.available_packages),
         carried_packages=MappingProxyType(dict(state.carried_packages)),
         delivered_packages=frozenset(state.delivered_packages),
+        available_keys=frozenset(state.available_keys),
     )
     return render_snapshot(state.grid, state.packages, snapshot)
 
@@ -341,7 +362,8 @@ def render_snapshot(grid: tuple[str, ...], packages: Mapping[str, Package], snap
     Multiple agents on the same cell are shown as ``*``.
     """
 
-    cells = [list(row) for row in grid]
+    available_keys = snapshot.available_keys if snapshot.available_keys is not None else find_key_positions(grid)
+    cells = [list(row) for row in visible_grid(grid, available_keys)]
     for package in packages.values():
         if package.package_id not in snapshot.delivered_packages:
             dr, dc = package.destination
@@ -391,6 +413,7 @@ class DungeonDeliveryGame:
             max_turns=config.max_turns,
             round_number=config.round_number,
             available_packages=set(package_map),
+            available_keys=find_key_positions(config.grid),
             terrain_costs=dict(config.terrain_costs),
         )
         self.state.snapshots.append(self.make_snapshot())
@@ -454,6 +477,7 @@ class DungeonDeliveryGame:
             available_packages=frozenset(self.state.available_packages),
             carried_packages=MappingProxyType(dict(self.state.carried_packages)),
             delivered_packages=frozenset(self.state.delivered_packages),
+            available_keys=frozenset(self.state.available_keys),
             last_agent_id=record.agent_id if record else None,
             last_action=record.action if record else None,
             message=record.message if record else "",
@@ -470,7 +494,7 @@ class DungeonDeliveryGame:
         }
         carried = MappingProxyType(dict(self.state.carried_packages))
         observation = Observation(
-            grid=self.state.grid,
+            grid=visible_grid(self.state.grid, self.state.available_keys),
             width=self.state.width,
             height=self.state.height,
             self_id=agent_id,
@@ -481,6 +505,7 @@ class DungeonDeliveryGame:
             legal_actions=tuple(self.legal_actions(agent)),
             all_packages=MappingProxyType(dict(self.state.packages)),
             packages_available=MappingProxyType(available),
+            available_keys=frozenset(self.state.available_keys),
             packages_carried_by_agents=carried,
             delivered_packages=frozenset(self.state.delivered_packages),
             all_agent_positions=MappingProxyType({aid: a.position for aid, a in self.state.agents.items()}),
@@ -523,8 +548,9 @@ class DungeonDeliveryGame:
             cost = cell_cost(self.state.grid[raw_next[0]][raw_next[1]], self.state.terrain_costs)
             agent.position = raw_next
             raw_cell = self.state.grid[raw_next[0]][raw_next[1]]
-            if raw_cell.islower():
+            if raw_cell.islower() and raw_next in self.state.available_keys:
                 agent.collected_keys.add(raw_cell)
+                self.state.available_keys.remove(raw_next)
             agent.delay_counter = max(0, cost - 1)
             return
 
