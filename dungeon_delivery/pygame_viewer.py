@@ -108,63 +108,70 @@ class PygameReplayViewer:
             raise RuntimeError('Install the visual extra with: pip install -e ".[visual]"') from exc
 
         pygame.init()
-        pygame.display.set_caption(self.title)
-        width = len(self.grid[0]) * self.style.cell_size + self.style.sidebar_width
-        height = max(len(self.grid) * self.style.cell_size, 560)
-        screen = pygame.display.set_mode((width, height))
-        clock = pygame.time.Clock()
-        small_font = pygame.font.SysFont(None, max(18, self.style.cell_size // 2))
-        big_font = pygame.font.SysFont(None, max(22, self.style.cell_size // 2 + 6))
-        button_font = pygame.font.SysFont(None, 24)
+        try:
+            pygame.display.set_caption(self.title)
+            width = len(self.grid[0]) * self.style.cell_size + self.style.sidebar_width
+            height = max(len(self.grid) * self.style.cell_size, 560)
+            screen = pygame.display.set_mode((width, height))
+            clock = pygame.time.Clock()
+            small_font = pygame.font.SysFont(None, max(18, self.style.cell_size // 2))
+            big_font = pygame.font.SysFont(None, max(22, self.style.cell_size // 2 + 6))
+            button_font = pygame.font.SysFont(None, 24)
 
-        index = 0
-        paused = False
-        elapsed = 0.0
-        running = True
-        while running:
-            dt = clock.tick(60) / 1000.0
-            replay_button, exit_button = self.button_rects(screen)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if replay_button.collidepoint(event.pos):
-                        index = 0
-                        elapsed = 0.0
-                        paused = False
-                    elif exit_button.collidepoint(event.pos):
+            index = 0
+            paused = False
+            elapsed = 0.0
+            running = True
+            while running:
+                dt = clock.tick(60) / 1000.0
+                replay_button, exit_button = self.button_rects(screen)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
                         running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-                    elif event.key == pygame.K_SPACE:
-                        paused = not paused
-                    elif event.key == pygame.K_RIGHT:
-                        index = min(index + 1, len(self.snapshots) - 1)
-                        paused = True
-                    elif event.key == pygame.K_LEFT:
-                        index = max(index - 1, 0)
-                        paused = True
-                    elif event.key == pygame.K_r:
-                        index = 0
+                        break
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        if replay_button.collidepoint(event.pos):
+                            index = 0
+                            elapsed = 0.0
+                            paused = False
+                        elif exit_button.collidepoint(event.pos):
+                            running = False
+                            break
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            running = False
+                            break
+                        if event.key == pygame.K_SPACE:
+                            paused = not paused
+                        elif event.key == pygame.K_RIGHT:
+                            index = min(index + 1, len(self.snapshots) - 1)
+                            paused = True
+                        elif event.key == pygame.K_LEFT:
+                            index = max(index - 1, 0)
+                            paused = True
+                        elif event.key == pygame.K_r:
+                            index = 0
+                            elapsed = 0.0
+                            paused = False
+
+                if not running:
+                    break
+
+                if not paused:
+                    elapsed += dt
+                    if elapsed >= 1.0 / self.style.fps:
                         elapsed = 0.0
-                        paused = False
+                        if index < len(self.snapshots) - 1:
+                            index += 1
+                        elif loop:
+                            index = 0
+                        else:
+                            paused = True
 
-            if not paused:
-                elapsed += dt
-                if elapsed >= 1.0 / self.style.fps:
-                    elapsed = 0.0
-                    if index < len(self.snapshots) - 1:
-                        index += 1
-                    elif loop:
-                        index = 0
-                    else:
-                        paused = True
-
-            self.draw(screen, self.snapshots[index], small_font, big_font, button_font, paused, index)
-            pygame.display.flip()
-
-        pygame.quit()
+                self.draw(screen, self.snapshots[index], small_font, big_font, button_font, paused, index)
+                pygame.display.flip()
+        finally:
+            _shutdown_pygame(pygame)
 
     def button_rects(self, screen):
         """Return replay and exit button rectangles for the current window."""
@@ -342,113 +349,125 @@ class PygameTournamentViewer:
             raise RuntimeError('Install the visual extra with: pip install -e ".[visual]"') from exc
 
         pygame.init()
-        pygame.display.set_caption(self.title)
-        screen = pygame.display.set_mode((820, 560))
-        clock = pygame.time.Clock()
-        title_font = pygame.font.SysFont(None, 34)
-        small_font = pygame.font.SysFont(None, 22)
-        big_font = pygame.font.SysFont(None, 28)
-        button_font = pygame.font.SysFont(None, 24)
+        try:
+            pygame.display.set_caption(self.title)
+            screen = pygame.display.set_mode((820, 560))
+            clock = pygame.time.Clock()
+            title_font = pygame.font.SysFont(None, 34)
+            small_font = pygame.font.SysFont(None, 22)
+            big_font = pygame.font.SysFont(None, 28)
+            button_font = pygame.font.SysFont(None, 24)
 
-        mode = "menu"
-        selected = 0
-        scroll = 0
-        replay_index = 0
-        paused = False
-        elapsed = 0.0
-        running = True
-        active_viewer = self._viewer_for_choice(selected)
-        while running:
-            dt = clock.tick(60) / 1000.0
-            if mode == "menu":
-                visible_rows = self._visible_rows(screen)
-                row_rects = self._menu_row_rects(screen, scroll, visible_rows)
-                exit_button = self._menu_exit_rect(screen)
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
+            mode = "menu"
+            selected = 0
+            scroll = 0
+            replay_index = 0
+            paused = False
+            elapsed = 0.0
+            running = True
+            active_viewer = self._viewer_for_choice(selected)
+            while running:
+                dt = clock.tick(60) / 1000.0
+                if mode == "menu":
+                    visible_rows = self._visible_rows(screen)
+                    row_rects = self._menu_row_rects(screen, scroll, visible_rows)
+                    exit_button = self._menu_exit_rect(screen)
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
                             running = False
-                        elif event.key in {pygame.K_DOWN, pygame.K_j}:
-                            selected = min(selected + 1, len(self.choices) - 1)
-                            scroll = _clamp_scroll(selected, scroll, visible_rows)
-                        elif event.key in {pygame.K_UP, pygame.K_k}:
-                            selected = max(selected - 1, 0)
-                            scroll = _clamp_scroll(selected, scroll, visible_rows)
-                        elif event.key in {pygame.K_RETURN, pygame.K_SPACE}:
-                            active_viewer = self._viewer_for_choice(selected)
-                            screen = self._resize_for_viewer(pygame, active_viewer)
-                            mode = "replay"
-                            replay_index = 0
-                            paused = False
-                            elapsed = 0.0
-                    elif event.type == pygame.MOUSEWHEEL:
-                        max_scroll = max(0, len(self.choices) - visible_rows)
-                        scroll = max(0, min(max_scroll, scroll - event.y))
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        if exit_button.collidepoint(event.pos):
-                            running = False
-                        for choice_index, rect in row_rects:
-                            if rect.collidepoint(event.pos):
-                                selected = choice_index
+                            break
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_ESCAPE:
+                                running = False
+                                break
+                            if event.key in {pygame.K_DOWN, pygame.K_j}:
+                                selected = min(selected + 1, len(self.choices) - 1)
+                                scroll = _clamp_scroll(selected, scroll, visible_rows)
+                            elif event.key in {pygame.K_UP, pygame.K_k}:
+                                selected = max(selected - 1, 0)
+                                scroll = _clamp_scroll(selected, scroll, visible_rows)
+                            elif event.key in {pygame.K_RETURN, pygame.K_SPACE}:
                                 active_viewer = self._viewer_for_choice(selected)
                                 screen = self._resize_for_viewer(pygame, active_viewer)
                                 mode = "replay"
                                 replay_index = 0
                                 paused = False
                                 elapsed = 0.0
+                        elif event.type == pygame.MOUSEWHEEL:
+                            max_scroll = max(0, len(self.choices) - visible_rows)
+                            scroll = max(0, min(max_scroll, scroll - event.y))
+                        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                            if exit_button.collidepoint(event.pos):
+                                running = False
                                 break
-                self.draw_menu(screen, title_font, small_font, button_font, selected, scroll)
-            else:
-                buttons = active_viewer.action_button_rects(screen, include_select=True)
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        if buttons["select"].collidepoint(event.pos):
-                            screen = pygame.display.set_mode((820, 560))
-                            mode = "menu"
-                        elif buttons["replay"].collidepoint(event.pos):
-                            replay_index = 0
-                            elapsed = 0.0
-                            paused = False
-                        elif buttons["exit"].collidepoint(event.pos):
+                            for choice_index, rect in row_rects:
+                                if rect.collidepoint(event.pos):
+                                    selected = choice_index
+                                    active_viewer = self._viewer_for_choice(selected)
+                                    screen = self._resize_for_viewer(pygame, active_viewer)
+                                    mode = "replay"
+                                    replay_index = 0
+                                    paused = False
+                                    elapsed = 0.0
+                                    break
+                    if not running:
+                        break
+                    self.draw_menu(screen, title_font, small_font, button_font, selected, scroll)
+                else:
+                    buttons = active_viewer.action_button_rects(screen, include_select=True)
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
                             running = False
-                    elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
-                            running = False
-                        elif event.key == pygame.K_TAB:
-                            screen = pygame.display.set_mode((820, 560))
-                            mode = "menu"
-                        elif event.key == pygame.K_SPACE:
-                            paused = not paused
-                        elif event.key == pygame.K_RIGHT:
-                            replay_index = min(replay_index + 1, len(active_viewer.snapshots) - 1)
-                            paused = True
-                        elif event.key == pygame.K_LEFT:
-                            replay_index = max(replay_index - 1, 0)
-                            paused = True
-                        elif event.key == pygame.K_r:
-                            replay_index = 0
+                            break
+                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                            if buttons["select"].collidepoint(event.pos):
+                                screen = pygame.display.set_mode((820, 560))
+                                mode = "menu"
+                            elif buttons["replay"].collidepoint(event.pos):
+                                replay_index = 0
+                                elapsed = 0.0
+                                paused = False
+                            elif buttons["exit"].collidepoint(event.pos):
+                                running = False
+                                break
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_ESCAPE:
+                                running = False
+                                break
+                            if event.key == pygame.K_TAB:
+                                screen = pygame.display.set_mode((820, 560))
+                                mode = "menu"
+                            elif event.key == pygame.K_SPACE:
+                                paused = not paused
+                            elif event.key == pygame.K_RIGHT:
+                                replay_index = min(replay_index + 1, len(active_viewer.snapshots) - 1)
+                                paused = True
+                            elif event.key == pygame.K_LEFT:
+                                replay_index = max(replay_index - 1, 0)
+                                paused = True
+                            elif event.key == pygame.K_r:
+                                replay_index = 0
+                                elapsed = 0.0
+                                paused = False
+
+                    if not running:
+                        break
+
+                    if not paused:
+                        elapsed += dt
+                        if elapsed >= 1.0 / active_viewer.style.fps:
                             elapsed = 0.0
-                            paused = False
-
-                if not paused:
-                    elapsed += dt
-                    if elapsed >= 1.0 / active_viewer.style.fps:
-                        elapsed = 0.0
-                        if replay_index < len(active_viewer.snapshots) - 1:
-                            replay_index += 1
-                        elif loop:
-                            replay_index = 0
-                        else:
-                            paused = True
-                active_viewer.draw(screen, active_viewer.snapshots[replay_index], small_font, big_font, button_font, paused, replay_index)
-                active_viewer.draw_action_buttons(screen, button_font, include_select=True)
-            pygame.display.flip()
-
-        pygame.quit()
+                            if replay_index < len(active_viewer.snapshots) - 1:
+                                replay_index += 1
+                            elif loop:
+                                replay_index = 0
+                            else:
+                                paused = True
+                    active_viewer.draw(screen, active_viewer.snapshots[replay_index], small_font, big_font, button_font, paused, replay_index)
+                    active_viewer.draw_action_buttons(screen, button_font, include_select=True)
+                pygame.display.flip()
+        finally:
+            _shutdown_pygame(pygame)
 
     def draw_menu(self, screen, title_font, small_font, button_font, selected: int, scroll: int) -> None:
         """Draw the replay selection screen."""
@@ -524,6 +543,19 @@ def replay_tournament(result, cell_size: int = 44, fps: float = 5.0, loop: bool 
 
     style = ReplayStyle(cell_size=cell_size, fps=fps)
     PygameTournamentViewer.from_tournament(result, style=style).run(loop=loop)
+
+
+def _shutdown_pygame(pygame_module) -> None:
+    """Close pygame windows without leaving notebook kernels wedged."""
+
+    try:
+        pygame_module.event.pump()
+        pygame_module.event.clear()
+    except pygame_module.error:
+        pass
+    finally:
+        pygame_module.display.quit()
+        pygame_module.quit()
 
 
 LEGEND_ITEMS = [
