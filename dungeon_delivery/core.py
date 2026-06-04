@@ -131,6 +131,7 @@ class GameSnapshot:
     turn: int
     agent_positions: Mapping[str, Position]
     agent_scores: Mapping[str, int]
+    agent_keys: Mapping[str, frozenset[str]]
     available_packages: frozenset[str]
     carried_packages: Mapping[str, str]
     delivered_packages: frozenset[str]
@@ -347,6 +348,7 @@ def render_board(state: GameState) -> str:
         turn=state.current_turn,
         agent_positions=MappingProxyType({aid: agent.position for aid, agent in state.agents.items() if agent.active}),
         agent_scores=MappingProxyType({aid: agent.score for aid, agent in state.agents.items()}),
+        agent_keys=MappingProxyType({aid: frozenset(agent.collected_keys) for aid, agent in state.agents.items()}),
         available_packages=frozenset(state.available_packages),
         carried_packages=MappingProxyType(dict(state.carried_packages)),
         delivered_packages=frozenset(state.delivered_packages),
@@ -474,6 +476,7 @@ class DungeonDeliveryGame:
             turn=self.state.current_turn,
             agent_positions=MappingProxyType({aid: a.position for aid, a in self.state.agents.items() if a.active}),
             agent_scores=MappingProxyType({aid: a.score for aid, a in self.state.agents.items()}),
+            agent_keys=MappingProxyType({aid: frozenset(a.collected_keys) for aid, a in self.state.agents.items()}),
             available_packages=frozenset(self.state.available_packages),
             carried_packages=MappingProxyType(dict(self.state.carried_packages)),
             delivered_packages=frozenset(self.state.delivered_packages),

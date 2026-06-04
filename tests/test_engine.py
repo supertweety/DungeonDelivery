@@ -66,6 +66,7 @@ def test_locked_doors_require_exclusive_keys():
 
     game.step("a")
     assert "a" in game.state.agents["a"].collected_keys
+    assert game.state.snapshots[-1].agent_keys["a"] == frozenset({"a"})
     assert (1, 2) not in game.state.available_keys
     assert game.make_observation("b").get_cell((1, 2)) == "."
 
